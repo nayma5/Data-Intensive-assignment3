@@ -80,9 +80,12 @@ def preprocess_review(review):
 
 
 def handler(event, context):
+    if event.get("Event") == "s3:TestEvent":
+        return {"statusCode": 200}
+
     output_bucket = get_output_bucket_name()
 
-    for record in event["Records"]:
+    for record in event.get("Records", []):
         input_bucket = record["s3"]["bucket"]["name"]
         key = unquote_plus(record["s3"]["object"]["key"])
 
