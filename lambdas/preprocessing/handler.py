@@ -21,10 +21,32 @@ STOP_WORDS = {
     "this", "that", "it", "to", "of", "for", "in", "on",
 }
 
+IRREGULAR_LEMMAS = {
+    "bought": "buy",
+    "better": "good",
+    "liked": "like",
+    "loved": "love",
+    "loving": "love",
+    "went": "go",
+    "working": "work",
+    "worse": "bad",
+    "worst": "bad",
+}
+
 
 def get_output_bucket_name():
     parameter = ssm.get_parameter(Name="/review-app/buckets/preprocessed")
     return parameter["Parameter"]["Value"]
+
+
+def lemmatize_word(word):
+    if word in IRREGULAR_LEMMAS:
+        return IRREGULAR_LEMMAS[word]
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
 
 
 def clean_text(text):
@@ -44,8 +66,7 @@ def clean_text(text):
 def preprocess_review(review):
     summary = review.get("summary", "")
     review_text = review.get("reviewText", "")
-
-    full_text = summary + " " + review_text
+    cleaned_words = clean_text(summary + " " + review_text)
 
     return {
         "reviewerID": review.get("reviewerID"),
@@ -53,8 +74,10 @@ def preprocess_review(review):
         "overall": review.get("overall"),
         "summary": summary,
         "reviewText": review_text,
-        "cleaned_words": clean_text(full_text),
+        "cleaned_words": cleaned_words,
+        "lemmas": [lemmatize_word(word) for word in cleaned_words],
     }
+
 
 def handler(event, context):
     output_bucket = get_output_bucket_name()
@@ -67,7 +90,6 @@ def handler(event, context):
         review = json.loads(response["Body"].read().decode("utf-8"))
 
         processed_review = preprocess_review(review)
-
         output_key = key.replace(".json", "_preprocessed.json")
 
         s3.put_object(
