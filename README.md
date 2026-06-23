@@ -1,102 +1,68 @@
 # Data Intensive Assignment 3
 
-Implemented the **review preprocessing Lambda**.
-
-The Lambda:
-
-* Reads review JSON files from S3
-* Combines the review summary and review text
-* Converts text to lowercase
-* Removes punctuation and special characters
-* Removes predefined stop words
-* Creates a list of cleaned words
-* Stores the processed review in a separate S3 bucket
-* Is triggered automatically when a new review is uploaded
-
-## Project Structure
+The implemented event-driven pipeline is:
 
 ```text
-lambdas/
-├── list/
-│   └── handler.py
-├── preprocessing/
-│   ├── handler.py
-│   └── requirements.txt
-└── presign/
-    └── handler.py
-
-website/
-tests/
-
-run.sh
-architecture.png
-README.md
+Raw review S3
+→ preprocessing Lambda
+→ profanity-check Lambda
+→ sentiment-analysis Lambda
+→ user-tracking Lambda
+→ DynamoDB customer count and ban status
 ```
 
-## How to Run
+Bucket and table names are stored in SSM Parameter Store.
 
-1. Start Ministack.
+## Run
 
-2. Clone the repository:
+Start MiniStack in one terminal:
 
 ```bash
-git clone <repository-url>
-cd Data-Intensive-assignment3
+ministack
 ```
 
-3. Deploy the infrastructure and Lambda functions:
+In another terminal:
 
 ```bash
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_DEFAULT_REGION=us-east-1
+
 bash run.sh
 ```
 
-4. Upload a review JSON file:
+## Upload a review
 
 ```bash
-aws --endpoint-url=http://localhost:4566 s3 cp review.json s3://ministack-thumbnails-app-images/
+aws --endpoint-url=http://localhost:4566 \
+  s3 cp sample_review.json s3://review-app-raw/
 ```
 
-5. Verify that the preprocessing Lambda generated the output file:
+Inspect the final analyzed review:
 
 ```bash
-aws --endpoint-url=http://localhost:4566 s3 ls s3://review-app-preprocessed
+aws --endpoint-url=http://localhost:4566 s3 cp \
+  s3://review-app-analyzed/sample_review_analyzed.json -
 ```
 
-## Example
-
-### Input
-
-```json
-{
-  "summary": "Good product",
-  "reviewText": "I really liked this product. It works very well!"
-}
-```
-
-### Output
-
-```json
-{
-  "cleaned_words": [
-    "good",
-    "product",
-    "really",
-    "liked",
-    "product",
-    "works",
-    "very",
-    "well"
-  ]
-}
-```
-
-## Note
-
-The preprocessing component is already implemented and working.
-
-If add new Lambda functions, buckets, or other infrastructure components, update `run.sh` and rerun:
+Inspect customer counts and ban status:
 
 ```bash
-bash run.sh
+aws --endpoint-url=http://localhost:4566 dynamodb scan \
+  --table-name review-app-users
 ```
 
+An impolite review increments `impoliteReviewCount`. A customer is marked with
+`isBanned: true` after more than three impolite reviews.
+
+## Implemented functionality
+
+- Tokenization and stop-word removal
+- Simple lemmatization
+- Profanity checking
+- Sentiment analysis
+- Counting impolite reviews per customer
+- Banning customers after their fourth impolite review
+
+Automated integration tests, dataset results, the final architecture diagram,
+and submission documents are still to be completed.
