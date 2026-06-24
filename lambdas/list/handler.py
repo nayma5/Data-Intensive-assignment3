@@ -25,21 +25,44 @@ DEFAULT_ALLOWED_ORIGINS = "http://localhost:4566,http://127.0.0.1:4566,https://l
 
 
 def get_bucket_name_images() -> str:
+    """Fetch the original image bucket name from SSM.
+
+    Returns:
+        The S3 bucket name for uploaded images.
+    """
     parameter = ssm.get_parameter(Name="/ministack-thumbnail-app/buckets/images")
     return parameter["Parameter"]["Value"]
 
 
 def get_bucket_name_resized() -> str:
+    """Fetch the resized image bucket name from SSM.
+
+    Returns:
+        The S3 bucket name for resized images.
+    """
     parameter = ssm.get_parameter(Name="/ministack-thumbnail-app/buckets/resized")
     return parameter["Parameter"]["Value"]
 
 
 def get_allowed_origins() -> set[str]:
+    """Read the allowed CORS origins from configuration.
+
+    Returns:
+        Set of allowed origin URLs.
+    """
     configured = os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
     return {origin.strip() for origin in configured.split(",") if origin.strip()}
 
 
 def get_cors_headers(event) -> dict[str, str]:
+    """Build CORS response headers for an HTTP event.
+
+    Args:
+        event: Lambda HTTP event.
+
+    Returns:
+        Headers to include in the Lambda response.
+    """
     origin = (event or {}).get("headers", {}).get("origin")
     allowed_origins = get_allowed_origins()
     allow_origin = origin if origin in allowed_origins else next(iter(allowed_origins), "*")
@@ -52,12 +75,29 @@ def get_cors_headers(event) -> dict[str, str]:
 
 
 def is_http_event(event) -> bool:
+    """Check whether an event came from an HTTP invocation.
+
+    Args:
+        event: Lambda event payload.
+
+    Returns:
+        True if the event looks like an HTTP request.
+    """
     return isinstance(event, dict) and (
         "requestContext" in event or "rawPath" in event or "headers" in event
     )
 
 
 def handler(event, context):
+    """List uploaded images and their resized versions.
+
+    Args:
+        event: HTTP or direct Lambda event.
+        context: Lambda runtime context.
+
+    Returns:
+        HTTP response or direct invocation payload with image metadata.
+    """
     event = event or {}
     cors_headers = get_cors_headers(event)
 

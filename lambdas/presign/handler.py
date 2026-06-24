@@ -26,16 +26,34 @@ ssm: "SSMClient" = boto3.client("ssm", endpoint_url=internal_endpoint_url)
 DEFAULT_ALLOWED_ORIGINS = "http://localhost:4566,http://127.0.0.1:4566,https://lbd.tuwien.ac.at"
 
 def get_bucket_name() -> str:
+    """Fetch the upload bucket name from SSM.
+
+    Returns:
+        The S3 bucket name used for direct uploads.
+    """
     parameter = ssm.get_parameter(Name="/ministack-thumbnail-app/buckets/images")
     return parameter["Parameter"]["Value"]
 
 
 def get_allowed_origins() -> set[str]:
+    """Read the allowed CORS origins from configuration.
+
+    Returns:
+        Set of allowed origin URLs.
+    """
     configured = os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
     return {origin.strip() for origin in configured.split(",") if origin.strip()}
 
 
 def get_cors_headers(event) -> dict[str, str]:
+    """Build CORS response headers for an HTTP event.
+
+    Args:
+        event: Lambda HTTP event.
+
+    Returns:
+        Headers to include in the Lambda response.
+    """
     origin = (event or {}).get("headers", {}).get("origin")
     allowed_origins = get_allowed_origins()
     allow_origin = origin if origin in allowed_origins else next(iter(allowed_origins), "*")
@@ -48,12 +66,28 @@ def get_cors_headers(event) -> dict[str, str]:
 
 
 def is_http_event(event) -> bool:
+    """Check whether an event came from an HTTP invocation.
+
+    Args:
+        event: Lambda event payload.
+
+    Returns:
+        True if the event looks like an HTTP request.
+    """
     return isinstance(event, dict) and (
         "requestContext" in event or "rawPath" in event or "headers" in event
     )
 
 
 def get_request_key(event) -> str:
+    """Extract the requested object key from a Lambda event.
+
+    Args:
+        event: HTTP or direct Lambda event.
+
+    Returns:
+        Requested S3 object key, or an empty string when missing.
+    """
     if not is_http_event(event):
         return (event or {}).get("key", "")
 
@@ -69,6 +103,15 @@ def get_request_key(event) -> str:
 
 
 def handler(event, context):
+    """Create a pre-signed S3 POST for browser uploads.
+
+    Args:
+        event: HTTP or direct Lambda event.
+        context: Lambda runtime context.
+
+    Returns:
+        HTTP response or direct invocation payload with the pre-signed POST.
+    """
     event = event or {}
     cors_headers = get_cors_headers(event)
 

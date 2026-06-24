@@ -15,11 +15,21 @@ dynamodb = boto3.resource("dynamodb", endpoint_url=endpoint_url)
 
 
 def get_users_table():
+    """Fetch the DynamoDB users table configured in SSM.
+
+    Returns:
+        DynamoDB table resource for customer tracking.
+    """
     parameter = ssm.get_parameter(Name="/review-app/tables/users")
     return dynamodb.Table(parameter["Parameter"]["Value"])
 
 
 def update_customer(review):
+    """Update a customer's impolite review count and ban status.
+
+    Args:
+        review: Analyzed review dictionary.
+    """
     reviewer_id = review.get("reviewerID")
     if not reviewer_id:
         return
@@ -56,6 +66,15 @@ def update_customer(review):
 
 
 def handler(event, context):
+    """Handle S3 events for analyzed review files.
+
+    Args:
+        event: Lambda event containing S3 records.
+        context: Lambda runtime context.
+
+    Returns:
+        Status dictionary for the Lambda invocation.
+    """
     if event.get("Event") == "s3:TestEvent":
         return {"statusCode": 200}
 

@@ -35,11 +35,24 @@ IRREGULAR_LEMMAS = {
 
 
 def get_output_bucket_name():
+    """Fetch the preprocessing output bucket name from SSM.
+
+    Returns:
+        The S3 bucket name used for preprocessed reviews.
+    """
     parameter = ssm.get_parameter(Name="/review-app/buckets/preprocessed")
     return parameter["Parameter"]["Value"]
 
 
 def lemmatize_word(word):
+    """Reduce a token to a simple lemma.
+
+    Args:
+        word: Token to normalize.
+
+    Returns:
+        A normalized version of the input token.
+    """
     if word in IRREGULAR_LEMMAS:
         return IRREGULAR_LEMMAS[word]
     if len(word) > 4 and word.endswith("ies"):
@@ -50,6 +63,14 @@ def lemmatize_word(word):
 
 
 def clean_text(text):
+    """Tokenize text and remove punctuation and stop words.
+
+    Args:
+        text: Raw review text to clean.
+
+    Returns:
+        A list of cleaned lowercase tokens.
+    """
     text = text.lower()
     text = re.sub(r"[^a-z\s]", " ", text)
 
@@ -64,6 +85,14 @@ def clean_text(text):
 
 
 def preprocess_review(review):
+    """Create the preprocessed representation of a review.
+
+    Args:
+        review: Raw review dictionary from the input S3 object.
+
+    Returns:
+        Review data with cleaned tokens and simple lemmas added.
+    """
     summary = review.get("summary", "")
     review_text = review.get("reviewText", "")
     cleaned_words = clean_text(summary + " " + review_text)
@@ -80,6 +109,15 @@ def preprocess_review(review):
 
 
 def handler(event, context):
+    """Handle S3 object-created events for raw review files.
+
+    Args:
+        event: Lambda event containing S3 records.
+        context: Lambda runtime context.
+
+    Returns:
+        Status dictionary for the Lambda invocation.
+    """
     if event.get("Event") == "s3:TestEvent":
         return {"statusCode": 200}
 

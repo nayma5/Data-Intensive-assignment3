@@ -31,11 +31,24 @@ NEGATIONS = {"not", "never", "no"}
 
 
 def get_output_bucket_name():
+    """Fetch the sentiment output bucket name from SSM.
+
+    Returns:
+        The S3 bucket name used for analyzed reviews.
+    """
     parameter = ssm.get_parameter(Name="/review-app/buckets/analyzed")
     return parameter["Parameter"]["Value"]
 
 
 def word_sentiment_score(tokens):
+    """Calculate a simple word-based sentiment score.
+
+    Args:
+        tokens: Lemmatized review tokens.
+
+    Returns:
+        Positive, negative, or neutral integer score from known words.
+    """
     score = 0
     negate_next = False
 
@@ -54,6 +67,14 @@ def word_sentiment_score(tokens):
 
 
 def rating_sentiment_score(overall):
+    """Convert the numeric review rating into a sentiment score.
+
+    Args:
+        overall: Review rating value.
+
+    Returns:
+        ``1`` for positive ratings, ``-1`` for negative ratings, or ``0``.
+    """
     try:
         rating = float(overall)
     except (TypeError, ValueError):
@@ -67,6 +88,14 @@ def rating_sentiment_score(overall):
 
 
 def analyze_sentiment(review):
+    """Add sentiment label and score to a review.
+
+    Args:
+        review: Profanity-checked review dictionary.
+
+    Returns:
+        Review data with sentiment fields added.
+    """
     text_score = word_sentiment_score(review.get("lemmas", []))
     rating_score = rating_sentiment_score(review.get("overall"))
     score = text_score + rating_score
@@ -86,12 +115,29 @@ def analyze_sentiment(review):
 
 
 def make_output_key(key):
+    """Build the S3 object key for an analyzed review.
+
+    Args:
+        key: Input S3 object key.
+
+    Returns:
+        Output key ending in ``_analyzed.json``.
+    """
     suffix = "_profanity_checked.json"
     base = key[:-len(suffix)] if key.lower().endswith(suffix) else key.removesuffix(".json")
     return f"{base}_analyzed.json"
 
 
 def handler(event, context):
+    """Handle S3 events for profanity-checked review files.
+
+    Args:
+        event: Lambda event containing S3 records.
+        context: Lambda runtime context.
+
+    Returns:
+        Status dictionary for the Lambda invocation.
+    """
     output_bucket = get_output_bucket_name()
 
     for record in event.get("Records", []):
