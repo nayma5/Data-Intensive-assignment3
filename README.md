@@ -64,5 +64,34 @@ An impolite review increments `impoliteReviewCount`. A customer is marked with
 - Counting impolite reviews per customer
 - Banning customers after their fourth impolite review
 
-Automated integration tests, dataset results, the final architecture diagram,
-and submission documents are still to be completed.
+## Automated Integration Tests
+
+Run all tests using:
+
+```bash
+python3 -m pytest tests -v
+
+Implemented test cases:
+
+Positive review processing
+Negative review processing
+Profanity detection
+Customer banning after four impolite reviews
+
+All tests passed successfully (4/4).
+
+## Dataset Results
+
+Dataset used:
+`/dic_shared/amazon-reviews/full/reviews_devset.json`
+
+Final results after processing:
+
+- Total Reviews Processed: 78,829
+- Positive Reviews: 68,549
+- Neutral Reviews: 3,956
+- Negative Reviews: 6,324
+- Profane Reviews: 873
+- Banned Users: 2 (integration-test generated users)
+
+the final architecture diagram, and submission documents are still to be completed.
