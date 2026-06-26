@@ -71,7 +71,7 @@ Run all tests using:
 ```bash
 python3 -m pytest tests -v
 
-Implemented test cases:
+**Run all tests using:**
 
 Positive review processing
 Negative review processing
