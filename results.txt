@@ -1,0 +1,14 @@
+Dataset Results
+---------------
+Total Reviews: 78829
+Positive Reviews: 68549
+Neutral Reviews: 3956
+Negative Reviews: 6324
+Profane Reviews: 873
+Banned Users: 2
+
+Note:
+The two banned users are test-generated users from integration tests:
+- banned_user
+- banned_user_1782470792
+No real dataset users exceeded the ban threshold.
