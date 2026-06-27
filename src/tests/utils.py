@@ -21,6 +21,7 @@ dynamodb = boto3.resource(
 )
 
 RAW_BUCKET = "review-app-raw"
+PREPROCESSED_BUCKET = "review-app-preprocessed"
 ANALYZED_BUCKET = "review-app-analyzed"
 USERS_TABLE = "review-app-users"
 
@@ -48,6 +49,25 @@ def wait_until_processed(key, timeout=20):
             time.sleep(1)
 
     raise TimeoutError("Review not processed in time")
+
+
+def wait_until_preprocessed(key, timeout=20):
+    preprocessed_key = key.replace(".json", "_preprocessed.json")
+
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            obj = s3.get_object(
+                Bucket=PREPROCESSED_BUCKET,
+                Key=preprocessed_key
+            )
+            return json.loads(obj["Body"].read().decode())
+        except Exception:
+            time.sleep(1)
+
+    raise TimeoutError("Review not preprocessed in time")
+
+
 def get_user(reviewer_id):
     table = dynamodb.Table(USERS_TABLE)
     response = table.get_item(Key={"reviewerID": reviewer_id})

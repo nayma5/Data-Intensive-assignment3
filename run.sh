@@ -14,6 +14,7 @@ PREPROCESSED_BUCKET="review-app-preprocessed"
 PROFANITY_BUCKET="review-app-profanity-checked"
 ANALYZED_BUCKET="review-app-analyzed"
 USERS_TABLE="review-app-users"
+LAMBDA_ROOT="src/lambdas"
 
 ### Create the buckets used by the review pipeline
 ${AWS} s3 mb "s3://${RAW_BUCKET}" || true
@@ -62,7 +63,7 @@ ${AWS} ssm put-parameter \
 ### Package and deploy the Lambda functions
 for function_name in preprocessing profanity sentiment user_tracking; do
   (
-    cd "lambdas/${function_name}"
+    cd "${LAMBDA_ROOT}/${function_name}"
     rm -f lambda.zip
     zip lambda.zip handler.py
   )
@@ -73,7 +74,7 @@ ${AWS} lambda create-function \
   --function-name preprocessing \
   --runtime python3.11 \
   --timeout 10 \
-  --zip-file fileb://lambdas/preprocessing/lambda.zip \
+  --zip-file fileb://${LAMBDA_ROOT}/preprocessing/lambda.zip \
   --handler handler.handler \
   --role arn:aws:iam::000000000000:role/lambda-role \
   --environment '{"Variables":{"STAGE":"local"}}'
@@ -83,7 +84,7 @@ ${AWS} lambda create-function \
   --function-name profanity-check \
   --runtime python3.11 \
   --timeout 10 \
-  --zip-file fileb://lambdas/profanity/lambda.zip \
+  --zip-file fileb://${LAMBDA_ROOT}/profanity/lambda.zip \
   --handler handler.handler \
   --role arn:aws:iam::000000000000:role/lambda-role \
   --environment '{"Variables":{"STAGE":"local"}}'
@@ -93,7 +94,7 @@ ${AWS} lambda create-function \
   --function-name sentiment-analysis \
   --runtime python3.11 \
   --timeout 10 \
-  --zip-file fileb://lambdas/sentiment/lambda.zip \
+  --zip-file fileb://${LAMBDA_ROOT}/sentiment/lambda.zip \
   --handler handler.handler \
   --role arn:aws:iam::000000000000:role/lambda-role \
   --environment '{"Variables":{"STAGE":"local"}}'
@@ -103,7 +104,7 @@ ${AWS} lambda create-function \
   --function-name user-tracking \
   --runtime python3.11 \
   --timeout 10 \
-  --zip-file fileb://lambdas/user_tracking/lambda.zip \
+  --zip-file fileb://${LAMBDA_ROOT}/user_tracking/lambda.zip \
   --handler handler.handler \
   --role arn:aws:iam::000000000000:role/lambda-role \
   --environment '{"Variables":{"STAGE":"local"}}'

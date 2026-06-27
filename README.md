@@ -13,6 +13,15 @@ Raw review S3
 
 Bucket and table names are stored in SSM Parameter Store.
 
+## Requirements
+
+Install the requirements with:
+
+```bash
+pip install -r requirements.txt
+```
+
+
 ## Run
 
 Start MiniStack in one terminal:
@@ -33,9 +42,11 @@ bash run.sh
 
 ## Upload a review
 
+For this we provide a sample review under `src/sample_review.json`.
+
 ```bash
 aws --endpoint-url=http://localhost:4566 \
-  s3 cp sample_review.json s3://review-app-raw/
+  s3 cp src/sample_review.json s3://review-app-raw/sample_review.json
 ```
 
 Inspect the final analyzed review:
@@ -66,19 +77,19 @@ An impolite review increments `impoliteReviewCount`. A customer is marked with
 
 ## Automated Integration Tests
 
-Run all tests using:
+We have in total 5 tests - preprocessing, positive review, negative review, profanity and banning of an user. Run all tests using:
 
 ```bash
-python3 -m pytest tests -v
+python3 -m pytest src/tests -v
+```
 
-**Run all tests using:**
+## Full dataset
 
-Positive review processing
-Negative review processing
-Profanity detection
-Customer banning after four impolite reviews
+Run the full dataset processor using:
 
-All tests passed successfully (4/4).
+```bash
+python3 src/scripts/run_dataset.py
+```
 
 ## Dataset Results
 
@@ -92,6 +103,4 @@ Final results after processing:
 - Neutral Reviews: 3,956
 - Negative Reviews: 6,324
 - Profane Reviews: 873
-- Banned Users: 2 (integration-test generated users)
-
-the final architecture diagram, and submission documents are still to be completed.
+- Banned Users: 0

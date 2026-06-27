@@ -3,6 +3,7 @@ import time
 import os
 import subprocess
 import boto3
+from uuid import uuid4
 
 ENDPOINT = "http://localhost:4566"
 
@@ -34,12 +35,17 @@ neutral = 0
 negative = 0
 profane = 0
 count = 0
+run_id = uuid4().hex
+dataset_reviewer_ids = set()
 
 
-def process_review(review, i):
+def process_review(review, i, timeout=60):
     global positive, neutral, negative, profane, count
 
-    key = f"dataset_review_{i}.json"
+    key = f"dataset_runs/{run_id}/dataset_review_{i}.json"
+    reviewer_id = review.get("reviewerID")
+    if reviewer_id:
+        dataset_reviewer_ids.add(reviewer_id)
 
     s3.put_object(
         Bucket=RAW_BUCKET,
@@ -49,7 +55,8 @@ def process_review(review, i):
 
     analyzed_key = key.replace(".json", "_analyzed.json")
 
-    while True:
+    start = time.time()
+    while time.time() - start < timeout:
         try:
             obj = s3.get_object(
                 Bucket=ANALYZED_BUCKET,
@@ -57,8 +64,10 @@ def process_review(review, i):
             )
             result = json.loads(obj["Body"].read().decode())
             break
-        except:
+        except Exception:
             time.sleep(0.2)
+    else:
+        raise TimeoutError(f"Review {key} was not processed in time")
 
     sentiment = result["sentiment"]
 
@@ -100,11 +109,19 @@ else:
         process_review(review, i)
 
 table = dynamodb.Table(USERS_TABLE)
-items = table.scan()["Items"]
+items = []
+scan_kwargs = {}
+
+while True:
+    response = table.scan(**scan_kwargs)
+    items.extend(response["Items"])
+    if "LastEvaluatedKey" not in response:
+        break
+    scan_kwargs["ExclusiveStartKey"] = response["LastEvaluatedKey"]
 
 banned_users = []
 for item in items:
-    if item.get("isBanned"):
+    if item.get("reviewerID") in dataset_reviewer_ids and item.get("isBanned"):
         banned_users.append(item["reviewerID"])
 
 print("\n===== RESULTS =====")
